@@ -52,13 +52,28 @@ func (s *Store) FindTransGlobalStore(gid string) *storage.TransGlobalStore {
 }
 
 // ScanTransGlobalStores lists GlobalTrans data
-func (s *Store) ScanTransGlobalStores(position *string, limit int64) []storage.TransGlobalStore {
+func (s *Store) ScanTransGlobalStores(position *string, limit int64, condition storage.TransGlobalScanCondition) []storage.TransGlobalStore {
 	globals := []storage.TransGlobalStore{}
 	lid := math.MaxInt64
 	if *position != "" {
 		lid = dtmimp.MustAtoi(*position)
 	}
-	dbr := dbGet().Must().Where("id < ?", lid).Order("id desc").Limit(int(limit)).Find(&globals)
+	query := dbGet().Must().Where("id < ?", lid)
+	if condition.Status != "" {
+		query = query.Where("status = ?", condition.Status)
+	}
+	if condition.TransType != "" {
+		query = query.Where("trans_type = ?", condition.TransType)
+	}
+	if !condition.CreateTimeStart.IsZero() {
+		query = query.Where("create_time >= ?", condition.CreateTimeStart.Format("2006-01-02 15:04:05"))
+	}
+	if !condition.CreateTimeEnd.IsZero() {
+		query = query.Where("create_time <= ?", condition.CreateTimeEnd.Format("2006-01-02 15:04:05"))
+	}
+
+	dbr := query.Order("id desc").Limit(int(limit)).Find(&globals)
+
 	if dbr.RowsAffected < limit {
 		*position = ""
 	} else {
