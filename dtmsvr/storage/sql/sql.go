@@ -4,6 +4,7 @@
  * license that can be found in the LICENSE file.
  */
 
+// package boltdb implement the storage for sql database
 package sql
 
 import (
@@ -202,6 +203,17 @@ func (s *Store) ResetCronTime(after time.Duration, limit int64) (succeedCount in
 		where)
 	affected, err := dtmimp.DBExec(conf.Store.Driver, dbGet().ToSQLDB(), sql)
 	return affected, affected == limit, err
+}
+
+// ResetTransGlobalCronTime reset nextCronTime of one global trans.
+func (s *Store) ResetTransGlobalCronTime(global *storage.TransGlobalStore) error {
+	now := getTimeStr(0)
+	sql := fmt.Sprintf(`UPDATE trans_global SET update_time='%s',next_cron_time='%s' WHERE gid = '%s'`,
+		now,
+		now,
+		global.Gid)
+	_, err := dtmimp.DBExec(conf.Store.Driver, dbGet().ToSQLDB(), sql)
+	return err
 }
 
 // ScanKV lists KV pairs
